@@ -7,10 +7,7 @@ SetWorkingDir %A_ScriptDir%		; Ensures a consistent starting directory.
 FileEncoding, UTF-16			; Sets the default encoding for FileRead, FileReadLine, Loop Read, FileAppend, and FileOpen(). Unicode UTF-16, little endian byte order (BMP of ISO 10646). Useful for .ini files which by default are coded as UTF-16. https://docs.microsoft.com/pl-pl/windows/win32/intl/code-page-identifiers?redirectedfrom=MSDN
 
 ; Section of global variables
-EndChars 		:= "-()[]{}':;""\,.?!`n `t"
-a_IH_Handles	:= []
-a_IH_Objects	:= []
-
+EndChars 		:= "-()[]{}':;""\,.?!`n `t"	;"/" is missing on purpose; this character is applied as trigger for many of my definitions
 
 ; Hotstring2("cat/", "*", "🐈")
 ; Hotstring2("dog", "", "🐕")
@@ -21,6 +18,7 @@ a_IH_Objects	:= []
 ; Hotstring2("konkwi", "*B0", "stador")
 ; Hotstring2("eee", "*", " ee")
 Hotstring2("`nt", "C*?", "`nT")
+Hotstring2("tn", "", "Thanks")
 ; :T:tn::Thanks     ;mikeyww challenge: https://jacks-autohotkey-blog.com/2020/03/09/auto-capitalize-the-first-letter-of-sentences/
 ; :C*?:`nt::`nT
 
