@@ -15,16 +15,18 @@ a_IH_Objects	:= []
 ; Hotstring2("cat/", "*", "🐈")
 ; Hotstring2("dog", "", "🐕")
 ; Hotstring2("tn", "", "Thanks")
-Hotstring2("btw", "C1*", "by The way")
-Hotstring2("ee", "?*", "ę")
-Hotstring2("konkwi", "*B0", "stador")
+; Hotstring2("Btw", "C", "by The way")
+; Hotstring2("ee", "?*", "ę")
+; Hotstring2("konkwi", "*B0", "stador")
+; Hotstring2("konkwi", "*B0", "stador")
 ; Hotstring2("eee", "*", " ee")
+Hotstring2("`nt", "C*?", "`nT")
 ; :T:tn::Thanks     ;mikeyww challenge: https://jacks-autohotkey-blog.com/2020/03/09/auto-capitalize-the-first-letter-of-sentences/
-:C*?:`nt::`nT
+; :C*?:`nt::`nT
 
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Hotstring2(triggerstring, options, hotstring)
+Hotstring2(triggerstring, options, hotstring)	;czas na samo "C"
 {
 	global	;asssume global-mode of operation
 	static	DefCounter 	:= 0
@@ -32,16 +34,22 @@ Hotstring2(triggerstring, options, hotstring)
 
 	if (InStr(options, "?"))
 	{
-		ihoptions := "*"
-		options := StrReplace(options, "?", "")
+		ihoptions .= "*"
+		options 	:= StrReplace(options, "?", "")
+	}
+	if (InStr(options, "C")) and (!InStr(options, "C1"))
+	{
+		ihoptions .= "C"
+		options	:= StrReplace(options, "C", "")
 	}
 	DynVar			:= "vIH" . ++DefCounter
-	; a_IH_Handles.Push(DynVar)
 	; OutputDebug, % "DynVar:" . A_Space . DynVar . "`n"
+	if (InStr(triggerstring, "`n"))
+		EndChars := StrReplace(EndChars, "`n", "")
 	DynVar			:= InputHook("V I1" . ihoptions, EndChars, triggerstring)	;I1 by default; L = 1023 by default; * = look everywhere
+	EndChars .= "`n"
 	; OutputDebug, % "DynVar:" . A_Space . DynVar . "`n"
-	; a_IH_Objects.Push(DynVar)
-
+		; DynVar.KeyOpt("{Enter}", "-E")
 	DynVar.OnEnd		:= Func("F_InputHookOnEnd").bind(DynVar, triggerstring, options, hotstring)
 	DynVar.Start()
 }
@@ -55,7 +63,7 @@ F_InputHookOnEnd(ih, triggerstring, options, hotstring)	;for debugging purposes
 
 	Critical, On
 	; OutputDebug, % "A_ThisFunc:" . A_Space . A_ThisFunc . A_Space . "Reason:" . A_Space . Reason . A_Tab . "ih.Input:" . A_Space . ih.Input . A_Space . "triggerstring:" . A_Space . triggerstring . A_Space . "options:" . options . A_Space . "hotstring:" . A_Space . hotstring . "`n"
-     OutputDebug, % "Reason:" . A_Space . Reason . A_Space . "input:" A_Space . ih.Input . "`n"
+     OutputDebug, % "Reason:" . A_Space . Reason . A_Space . "input:" A_Space . ih.Input . A_Space . "triggerstring:" . triggerstring . A_Space . "hotstring:" . A_Space . hotstring . "`n"
      ; OutputDebug, % "MatchHit:" . A_Space . MatchHit . A_Space . "MatchTriggerstring:" A_Space . MatchTriggerstring . "`n"
 	if (Reason = "Match")
 	{
@@ -79,6 +87,10 @@ F_InputHookOnEnd(ih, triggerstring, options, hotstring)	;for debugging purposes
 			}
 			if (!fFirstLetterCap)
 				MatchHotstring := hotstring
+		}
+		else
+		{
+			MatchHotstring := hotstring
 		}
 		MatchTriggerstring	:= triggerstring
 		OutputDebug, % "Reason:" . A_Space . Reason . A_Space . "MatchTriggerstring:" . A_Space . MatchTriggerstring . A_Tab . "MatchHotstring:" . A_Space . MatchHotstring . A_Tab . "ih.Input:" . A_Space . ih.Input . "`n"
@@ -110,7 +122,6 @@ F_InputHookOnEnd(ih, triggerstring, options, hotstring)	;for debugging purposes
 		}
 	}
 
-
 	; OutputDebug, % "MatchTriggerstring:" . A_Space . MatchTriggerstring . A_Space . "triggerstring:" . A_Space . triggerstring . "`n"
 	if (Reason = "EndKey") and (triggerstring = MatchTriggerstring) and (ih.Input = "") ;plain (no *) tu jestem: 
 	{
@@ -120,16 +131,17 @@ F_InputHookOnEnd(ih, triggerstring, options, hotstring)	;for debugging purposes
 			SendInput, % MatchHotstring . "{" . ih.EndKey . "}"
 		else		
 			SendInput, % "{BS" . A_Space . StrLen(MatchTriggerstring) + 1 . "}" . MatchHotstring . "{" . ih.EndKey . "}"
-		MatchTriggerstring := ""
-		MatchHotstring := ""
+		; MatchTriggerstring := ""
+		; MatchHotstring := ""
 		ih.Start()
 		return
 	}
 	else
 	{
+		OutputDebug, % "triggerstring:" . A_Space . triggerstring . A_Space . "hotstring:" . A_Space . hotstring . "`n"
 		ih.Start()
 		OutputDebug, % "Restart" . "`n"
 		return
 	}
-	     OutputDebug, % "NoRestart:" . "`n"
+     OutputDebug, % "NoRestart:" . "`n"
 }
