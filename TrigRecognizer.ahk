@@ -15,16 +15,17 @@ EndChars 		:= "-()[]{}':;""\,.?!`n `t"	;"/" is missing on purpose; this characte
 ; Hotstring2("Btw", "C", "by The way")
 ; Hotstring2("ee", "?*", "ę")
 ; Hotstring2("konkwi", "*B0", "stador")
-; Hotstring2("konkwi", "*B0", "stador")
 ; Hotstring2("eee", "*", " ee")
-Hotstring2("`nt", "C*?", "`nT")
-Hotstring2("tn", "", "Thanks")
+; Hotstring2("`nt", "C*?", "`nT")
+Hotstring2("`nt", "C*?", "`nrabant")
+Hotstring2("tn", "", "Thanks")	;problem: po wywolaniu kazde wcisniecie Enter wywoluje ten ciag
 ; :T:tn::Thanks     ;mikeyww challenge: https://jacks-autohotkey-blog.com/2020/03/09/auto-capitalize-the-first-letter-of-sentences/
 ; :C*?:`nt::`nT
+; :C*?:`nt::`nrabant
 
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Hotstring2(triggerstring, options, hotstring)	;czas na samo "C"
+Hotstring2(triggerstring, options, hotstring)
 {
 	global	;asssume global-mode of operation
 	static	DefCounter 	:= 0
@@ -68,7 +69,7 @@ F_InputHookOnEnd(ih, triggerstring, options, hotstring)	;for debugging purposes
 		if (!InStr(options, "C"))
 		{
 			vFirstLetter1 		:= SubStr(ih.Input, 1, 1)
-			vRestOfLetters 	:= SubStr(ih.Input, 2)
+,			vRestOfLetters 	:= SubStr(ih.Input, 2)
 			if vFirstLetter1 is upper
 				fFirstLetterCap 	:= true
 			if (RegExMatch(ih.Input, "^[[:punct:][:digit:][:upper:][:space:]]*$"))
@@ -96,7 +97,7 @@ F_InputHookOnEnd(ih, triggerstring, options, hotstring)	;for debugging purposes
 		if (InStr(options, "C1"))
 		{
 			MatchTriggerstring	:= triggerstring
-			MatchHotstring := hotstring
+,			MatchHotstring 	:= hotstring
 		}
 
 		if InStr(options, "*")
@@ -108,8 +109,8 @@ F_InputHookOnEnd(ih, triggerstring, options, hotstring)	;for debugging purposes
 					SendInput, % MatchHotstring
 				else
 					SendInput, % "{BS" . A_Space . StrLen(triggerstring) . "}" . MatchHotstring
-				MatchTriggerstring := ""
-				MatchHotstring := ""
+				MatchTriggerstring 	:= ""
+,				MatchHotstring 	:= ""
 				ih.Start()
 				return
 			}
