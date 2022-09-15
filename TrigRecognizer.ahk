@@ -9,60 +9,100 @@ FileEncoding, UTF-16			; Sets the default encoding for FileRead, FileReadLine, L
 ; Section of global variables
 EndChars 		:= "-()[]{}':;""\,.?!`n `t"	;"/" is missing on purpose; this character is applied as trigger for many of my definitions
 
-; Hotstring2("cat/", "*", "🐈")
-; Hotstring2("dog", "", "🐕")
-; Hotstring2("tn", "", "Thanks")
+Hotstring2("cat/", "*", "🐈")
+Hotstring2("dog", "", "🐕")
 ; Hotstring2("Btw", "C", "by The way")
-; Hotstring2("ee", "?*", "ę")
+Hotstring2("ęe", "C*?", "ee")
+Hotstring2("ee", "C?*D", "ę")
 ; Hotstring2("konkwi", "*B0", "stador")
-; Hotstring2("eee", "*", " ee")
 ; Hotstring2("`nt", "C*?", "`nT")
-Hotstring2("`nt", "C*?", "`nrabant")
-Hotstring2("tn", "", "Thanks")	;problem: po wywolaniu kazde wcisniecie Enter wywoluje ten ciag
+; Hotstring2("`nt", "C*?", "`nrabant")
+; Hotstring2("tn", "", "Thanks")	;problem: po wywolaniu kazde wcisniecie Enter wywoluje ten ciag
 ; :T:tn::Thanks     ;mikeyww challenge: https://jacks-autohotkey-blog.com/2020/03/09/auto-capitalize-the-first-letter-of-sentences/
 ; :C*?:`nt::`nT
 ; :C*?:`nt::`nrabant
 
+F2:: 
+	Hotstring2("cat/", "*", "🐈", "Off")
+return
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Hotstring2(triggerstring, options, hotstring)
+Hotstring2(triggerstring, options, hotstring, params*)
 {
 	global	;asssume global-mode of operation
-	static	DefCounter 	:= 0
-	local	DynVar 		:= "", ihoptions := ""
+	local	ihoptions := "", ihobject := {}, Reason := "", BoolVar := false
+	static	WhatIsCreated := {}
 
-	if (InStr(options, "?"))
+	Switch params[1]	;OnOffToggle
 	{
-		ihoptions .= "*"
-		options 	:= StrReplace(options, "?", "")
+		Default:
+			if (InStr(options, "?"))
+			{
+				ihoptions .= "*"
+				options 	:= StrReplace(options, "?", "")
+			}
+			if (InStr(options, "C")) and (!InStr(options, "C1"))
+			{
+				ihoptions .= "C"
+				options	:= StrReplace(options, "C", "")
+			}
+			if (InStr(options, "D"))	;case sensitive comparison
+				options .= "D"
+
+			if (InStr(triggerstring, "`n"))	;byc moze trzeba bedzie zrobic wiecej takich warunkow
+				EndChars := StrReplace(EndChars, "`n", "")
+			
+			ihobject		:= InputHook("V I1" . ihoptions, EndChars, triggerstring)	;I1 by default; L = 1023 by default; * = look everywhere
+			EndChars		.= "`n"
+			; OutputDebug, % "ihobject:" . A_Space . ihobject . "`n"
+			ihobject.OnEnd	:= Func("F_InputHookOnEnd").bind(ihobject, triggerstring, options, hotstring)
+			ihobject.Start()
+			WhatIsCreated[triggerstring] := ihobject
+		Case "On":
+			if (InStr(options, "?"))
+			{
+				ihoptions .= "*"
+				options 	:= StrReplace(options, "?", "")
+			}
+			if (InStr(options, "C")) and (!InStr(options, "C1"))
+			{
+				ihoptions .= "C"
+				options	:= StrReplace(options, "C", "")
+			}
+			; OutputDebug, % "ihobject:" . A_Space . ihobject . "`n"
+			if (InStr(triggerstring, "`n"))
+				EndChars := StrReplace(EndChars, "`n", "")
+			ihobject		:= InputHook("V I1" . A_Space . ihoptions, EndChars, triggerstring)	;I1 by default; L = 1023 by default; * = look everywhere
+			EndChars		.= "`n"
+			; OutputDebug, % "ihobject:" . A_Space . ihobject . "`n"
+			ihobject.OnEnd	:= Func("F_InputHookOnEnd").bind(ihobject, triggerstring, options, hotstring)
+			ihobject.Start()
+			WhatIsCreated[triggerstring] := ihobject
+		Case "Off":
+			ihobject := WhatIsCreated[triggerstring]
+			BoolVar := ihobject.InProgress
+			OutputDebug, % "InProgress:" . BoolVar . "`n"
+			; Reason := ihobject.Wait()
+			ihobject.OnEnd := ""
+			ihobject.Stop()
+			; WhatIsCreated[triggerstring].Stop()
+			Reason := ihobject.EndReason
+			OutputDebug, % "Reason:" . Reason . "`n"
+			BoolVar := ihobject.InProgress
+			OutputDebug, % "InProgress:" . BoolVar . "`n"
+			; Reason := WhatIsCreated[triggerstring].EndReason
 	}
-	if (InStr(options, "C")) and (!InStr(options, "C1"))
-	{
-		ihoptions .= "C"
-		options	:= StrReplace(options, "C", "")
-	}
-	DynVar			:= "vIH" . ++DefCounter
-	; OutputDebug, % "DynVar:" . A_Space . DynVar . "`n"
-	if (InStr(triggerstring, "`n"))
-		EndChars := StrReplace(EndChars, "`n", "")
-	DynVar			:= InputHook("V I1" . ihoptions, EndChars, triggerstring)	;I1 by default; L = 1023 by default; * = look everywhere
-	EndChars .= "`n"
-	; OutputDebug, % "DynVar:" . A_Space . DynVar . "`n"
-		; DynVar.KeyOpt("{Enter}", "-E")
-	DynVar.OnEnd		:= Func("F_InputHookOnEnd").bind(DynVar, triggerstring, options, hotstring)
-	DynVar.Start()
 }
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 F_InputHookOnEnd(ih, triggerstring, options, hotstring)	;for debugging purposes
 {
 	global	;assume-global mode of operation
 	local 	KeyName 	:= ih.EndKey, Reason	:= ih.EndReason, vFirstLetter1 := "", vRestOfLetters := "", fFirstLetterCap := false, fRestOfLettersCap := false, vFirstLetter2 := "", HowManyInputHooks := 0, IHidentifier := "", key := 0
-			
 	static	MatchHit := false, MatchHotstring := "", MatchTriggerstring := ""
 
 	Critical, On
 	; OutputDebug, % "A_ThisFunc:" . A_Space . A_ThisFunc . A_Space . "Reason:" . A_Space . Reason . A_Tab . "ih.Input:" . A_Space . ih.Input . A_Space . "triggerstring:" . A_Space . triggerstring . A_Space . "options:" . options . A_Space . "hotstring:" . A_Space . hotstring . "`n"
-     OutputDebug, % "Reason:" . A_Space . Reason . A_Space . "input:" A_Space . ih.Input . A_Space . "triggerstring:" . triggerstring . A_Space . "hotstring:" . A_Space . hotstring . "`n"
+     ; OutputDebug, % "Reason:" . A_Space . Reason . A_Space . "input:" A_Space . ih.Input . A_Space . "triggerstring:" . triggerstring . A_Space . "hotstring:" . A_Space . hotstring . "`n"
      ; OutputDebug, % "MatchHit:" . A_Space . MatchHit . A_Space . "MatchTriggerstring:" A_Space . MatchTriggerstring . "`n"
 	if (Reason = "Match")
 	{
@@ -92,7 +132,7 @@ F_InputHookOnEnd(ih, triggerstring, options, hotstring)	;for debugging purposes
 			MatchHotstring := hotstring
 		}
 		MatchTriggerstring	:= triggerstring
-		OutputDebug, % "Reason:" . A_Space . Reason . A_Space . "MatchTriggerstring:" . A_Space . MatchTriggerstring . A_Tab . "MatchHotstring:" . A_Space . MatchHotstring . A_Tab . "ih.Input:" . A_Space . ih.Input . "`n"
+		; OutputDebug, % "Reason:" . A_Space . Reason . A_Space . "MatchTriggerstring:" . A_Space . MatchTriggerstring . A_Tab . "MatchHotstring:" . A_Space . MatchHotstring . A_Tab . "ih.Input:" . A_Space . ih.Input . "`n"
 
 		if (InStr(options, "C1"))
 		{
@@ -102,9 +142,30 @@ F_InputHookOnEnd(ih, triggerstring, options, hotstring)	;for debugging purposes
 
 		if InStr(options, "*")
 			{
-				OutputDebug, % "*:" . "`n"
-				OutputDebug, % "Reason:" . A_Space . Reason . A_Tab . "MatchHit:" . A_Space . MatchHit . A_Tab . "MatchTriggerstring:" . A_Space . MatchTriggerstring . A_Tab . "MatchHotstring:" . A_Space . MatchHotstring . A_Tab . "ih.Input:" . A_Space . ih.Input . "`n"
+				; OutputDebug, % "*:" . "`n"
+				; OutputDebug, % "Reason:" . A_Space . Reason . A_Tab . "MatchHit:" . A_Space . MatchHit . A_Tab . "MatchTriggerstring:" . A_Space . MatchTriggerstring . A_Tab . "MatchHotstring:" . A_Space . MatchHotstring . A_Tab . "ih.Input:" . A_Space . ih.Input . "`n"
 				OutputDebug, % "triggerstring:" . A_Space . triggerstring . A_Tab . "options:" . options . A_Tab . "hotstring:" . A_Space . hotstring . "`n"
+				if (InStr(options, "D"))
+				{
+					if (InStr(options, "B0"))
+					{
+						SendLevel, 2
+						SendEvent, % MatchHotstring
+						SendLevel, 0
+					}
+					else
+					{
+						SendLevel, 2
+						SendEvent, % "{BS" . A_Space . StrLen(triggerstring) . "}" . MatchHotstring
+						SendLevel, 0
+						OutputDebug, % "SendLevel2" . "`n"
+					}
+					MatchTriggerstring 	:= ""
+,					MatchHotstring 	:= ""
+					ih.Start()
+					return
+				}
+
 				if (InStr(options, "B0"))
 					SendInput, % MatchHotstring
 				else
@@ -122,25 +183,39 @@ F_InputHookOnEnd(ih, triggerstring, options, hotstring)	;for debugging purposes
 	}
 
 	; OutputDebug, % "MatchTriggerstring:" . A_Space . MatchTriggerstring . A_Space . "triggerstring:" . A_Space . triggerstring . "`n"
-	if (Reason = "EndKey") and (triggerstring = MatchTriggerstring) and (ih.Input = "") ;plain (no *) tu jestem: 
+	if (Reason = "EndKey") and (triggerstring = MatchTriggerstring) and (ih.Input = "") ;plain (no *) 
 	{
-		OutputDebug, % "EndKey:" A_Space . ih.EndKey . "|" . "`n"
-		OutputDebug, % "triggerstring:" . A_Space . triggerstring . A_Tab . "options:" . options . A_Tab . "hotstring:" . A_Space . hotstring . "`n"
+		; OutputDebug, % "EndKey:" A_Space . ih.EndKey . "|" . "`n"
+		; OutputDebug, % "triggerstring:" . A_Space . triggerstring . A_Tab . "options:" . options . A_Tab . "hotstring:" . A_Space . hotstring . "`n"
+		if (InStr(options, "D"))
+		{
+			if (InStr(options, "B0"))
+			{
+				SendLevel, 2
+				SendEvent, % MatchHotstring . "{" . ih.EndKey . "}"
+				SendLevel, 0
+			}
+			else
+			{
+				SendLevel, 2
+				SendEvent, % "{BS" . A_Space . StrLen(MatchTriggerstring) + 1 . "}" . MatchHotstring . "{" . ih.EndKey . "}"
+				SendLevel, 0
+			}
+		}
 		if (InStr(options, "B0"))
 			SendInput, % MatchHotstring . "{" . ih.EndKey . "}"
-		else		
+		else
 			SendInput, % "{BS" . A_Space . StrLen(MatchTriggerstring) + 1 . "}" . MatchHotstring . "{" . ih.EndKey . "}"
-		; MatchTriggerstring := ""
-		; MatchHotstring := ""
+		MatchTriggerstring := ""
 		ih.Start()
 		return
 	}
 	else
 	{
-		OutputDebug, % "triggerstring:" . A_Space . triggerstring . A_Space . "hotstring:" . A_Space . hotstring . "`n"
-		ih.Start()
-		OutputDebug, % "Restart" . "`n"
+		; OutputDebug, % "triggerstring:" . A_Space . triggerstring . A_Space . "hotstring:" . A_Space . hotstring . "`n"
+		ih.Start()	;tu jestem:
+		; OutputDebug, % "Restart" . "`n"
 		return
 	}
-     OutputDebug, % "NoRestart:" . "`n"
+     ; OutputDebug, % "NoRestart:" . "`n"
 }
