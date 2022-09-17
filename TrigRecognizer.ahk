@@ -7,7 +7,32 @@ SetWorkingDir %A_ScriptDir%		; Ensures a consistent starting directory.
 FileEncoding, UTF-16			; Sets the default encoding for FileRead, FileReadLine, Loop Read, FileAppend, and FileOpen(). Unicode UTF-16, little endian byte order (BMP of ISO 10646). Useful for .ini files which by default are coded as UTF-16. https://docs.microsoft.com/pl-pl/windows/win32/intl/code-page-identifiers?redirectedfrom=MSDN
 
 ; Section of global variables
-EndChars 		:= "-()[]{}':;""\,.?!`n `t"	;"/" is missing on purpose; this character is applied as trigger for many of my definitions
+
+endkeys		:= {	1: "-"	;"/" is missing from "standard" set Hotstring function "Ending Characters" on purpose; this character is applied as trigger for many of my definitions
+			,	2: "("
+			, 	3: ")"
+			, 	4: "["
+			, 	5: "]"
+			, 	6: "{"
+			, 	7: "}"
+			, 	8: "'"
+			, 	9: ":"
+			, 	10: ";"
+			, 	11: """"
+			, 	12: "\"
+			, 	13: ","
+			, 	14: "."
+			, 	15: "?"
+			, 	16: "!"
+			, 	17: "`n"
+			, 	18: " "
+			, 	19: "`t"}
+, index := 0, value := "", v_endkeys := ""
+
+for index, value in endkeys
+	v_endkeys .= value	;EndKeys are used for InputHook definitions
+
+; v_endkeys 		:= "-()[]{}':;""\,.?!`n `t"	;"/" is missing on purpose; this character is applied as trigger for many of my definitions
 
 Hotstring2("cat/", "*", "🐈")
 Hotstring2("dog", "", "🐕")
@@ -21,8 +46,6 @@ Hotstring2("ee", "C?*D", "ę")
 ; :T:tn::Thanks     ;mikeyww challenge: https://jacks-autohotkey-blog.com/2020/03/09/auto-capitalize-the-first-letter-of-sentences/
 ; :C*?:`nt::`nT
 ; :C*?:`nt::`nrabant
-
-OutputDebug, % "Temp" . "`n"
 
 F2:: 
 	Hotstring2("cat/", "*", "🐈", "Off")
@@ -51,10 +74,10 @@ Hotstring2(triggerstring, options, hotstring, params*)
 			}
 
 			if (InStr(triggerstring, "`n"))	;byc moze trzeba bedzie zrobic wiecej takich warunkow
-				EndChars := StrReplace(EndChars, "`n", "")
+				v_endkeys := StrReplace(v_endkeys, "`n", "")
 			
-			ihobject		:= InputHook("V I1" . ihoptions, EndChars, triggerstring)	;I1 by default; L = 1023 by default; * = look everywhere
-			EndChars		.= "`n"
+			ihobject		:= InputHook("V I1" . ihoptions, v_endkeys, triggerstring)	;I1 by default; L = 1023 by default; * = look everywhere
+			v_endkeys		.= "`n"
 			; OutputDebug, % "ihobject:" . A_Space . ihobject . "`n"
 			ihobject.OnEnd	:= Func("F_InputHookOnEnd").bind(ihobject, triggerstring, options, hotstring)
 			ihobject.Start()
@@ -72,26 +95,17 @@ Hotstring2(triggerstring, options, hotstring, params*)
 			}
 			; OutputDebug, % "ihobject:" . A_Space . ihobject . "`n"
 			if (InStr(triggerstring, "`n"))
-				EndChars := StrReplace(EndChars, "`n", "")
-			ihobject		:= InputHook("V I1" . A_Space . ihoptions, EndChars, triggerstring)	;I1 by default; L = 1023 by default; * = look everywhere
-			EndChars		.= "`n"
+				v_endkeys := StrReplace(v_endkeys, "`n", "")
+			ihobject		:= InputHook("V I1" . A_Space . ihoptions, v_endkeys, triggerstring)	;I1 by default; L = 1023 by default; * = look everywhere
+			v_endkeys		.= "`n"
 			; OutputDebug, % "ihobject:" . A_Space . ihobject . "`n"
 			ihobject.OnEnd	:= Func("F_InputHookOnEnd").bind(ihobject, triggerstring, options, hotstring)
 			ihobject.Start()
 			WhatIsCreated[triggerstring] := ihobject
 		Case "Off":
-			ihobject := WhatIsCreated[triggerstring]
-			BoolVar := ihobject.InProgress
-			OutputDebug, % "InProgress:" . BoolVar . "`n"
-			; Reason := ihobject.Wait()
-			ihobject.OnEnd := ""
+			ihobject 		:= WhatIsCreated[triggerstring]
+,			ihobject.OnEnd := ""
 			ihobject.Stop()
-			; WhatIsCreated[triggerstring].Stop()
-			Reason := ihobject.EndReason
-			OutputDebug, % "Reason:" . Reason . "`n"
-			BoolVar := ihobject.InProgress
-			OutputDebug, % "InProgress:" . BoolVar . "`n"
-			; Reason := WhatIsCreated[triggerstring].EndReason
 	}
 }
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -225,4 +239,30 @@ F_InputHookOnEnd(ih, triggerstring, options, hotstring)	;for debugging purposes
 		return
 	}
      ; OutputDebug, % "NoRestart:" . "`n"
+}
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+F_H2_On(triggerstring, options, hotstring)
+{
+	global	;asssume global-mode of operation
+	local	ihoptions := "", ihobject := {}, Reason := "", BoolVar := false
+
+	if (InStr(options, "?"))
+	{
+		ihoptions .= "*"
+		options 	:= StrReplace(options, "?", "")
+	}
+	if (InStr(options, "C")) and (!InStr(options, "C1"))
+	{
+		ihoptions .= "C"
+		options	:= StrReplace(options, "C", "")
+	}
+
+	if (InStr(triggerstring, "`n"))	;byc moze trzeba bedzie zrobic wiecej takich warunkow
+		v_endkeys := StrReplace(v_endkeys, "`n", "")
+	
+	ihobject		:= InputHook("V I1" . ihoptions, v_endkeys, triggerstring)	;I1 by default; L = 1023 by default; * = look everywhere
+	v_endkeys		.= "`n"
+	; OutputDebug, % "ihobject:" . A_Space . ihobject . "`n"
+	ihobject.OnEnd	:= Func("F_InputHookOnEnd").bind(ihobject, triggerstring, options, hotstring)
+	ihobject.Start()
 }
