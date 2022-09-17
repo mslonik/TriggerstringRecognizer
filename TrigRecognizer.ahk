@@ -7,7 +7,7 @@ SetWorkingDir %A_ScriptDir%		; Ensures a consistent starting directory.
 FileEncoding, UTF-16			; Sets the default encoding for FileRead, FileReadLine, Loop Read, FileAppend, and FileOpen(). Unicode UTF-16, little endian byte order (BMP of ISO 10646). Useful for .ini files which by default are coded as UTF-16. https://docs.microsoft.com/pl-pl/windows/win32/intl/code-page-identifiers?redirectedfrom=MSDN
 
 ; Section of global variables
-EndChars		:= {	1: "-"	;"/" is missing from "standard" set Hotstring function "Ending Characters" on purpose; this character is applied as trigger for many of my definitions
+EndKeys		:= {	1: "-"	;"/" is missing from "standard" set Hotstring function "Ending Characters" on purpose; this character is applied as trigger for many of my definitions
 			,	2: "("
 			, 	3: ")"
 			, 	4: "["
@@ -28,8 +28,9 @@ EndChars		:= {	1: "-"	;"/" is missing from "standard" set Hotstring function "En
 			, 	19: "`t"}
 , index := 0, value := "", EndKeys := ""
 
-for index, value in EndChars
-	EndKeys .= value
+EndChars 		:= "-()[]{}':;""\,.?!`n `t"	;"/" is missing on purpose; this character is applied as trigger for many of my definitions
+; for index, value in EndChars
+	; EndKeys .= value	;EndKeys are used for InputHook definitions
 
 Hotstring2("cat/", "*", "🐈")
 Hotstring2("dog", "", "🐕")
@@ -121,7 +122,7 @@ F_InputHookOnEnd(ih, triggerstring, options, hotstring)
 			{
 				; OutputDebug, % "*:" . "`n"
 				; OutputDebug, % "Reason:" . A_Space . Reason . A_Tab . "MatchHit:" . A_Space . MatchHit . A_Tab . "MatchTriggerstring:" . A_Space . MatchTriggerstring . A_Tab . "MatchHotstring:" . A_Space . MatchHotstring . A_Tab . "ih.Input:" . A_Space . ih.Input . "`n"
-				; OutputDebug, % "triggerstring:" . A_Space . triggerstring . A_Tab . "options:" . options . A_Tab . "hotstring:" . A_Space . hotstring . "`n"
+				OutputDebug, % "triggerstring:" . A_Space . triggerstring . A_Tab . "options:" . options . A_Tab . "hotstring:" . A_Space . hotstring . "`n"
 				if (InStr(options, "D"))
 				{
 					if (InStr(options, "B0"))
@@ -178,9 +179,9 @@ F_InputHookOnEnd(ih, triggerstring, options, hotstring)
 				SendEvent, % "{BS" . A_Space . StrLen(MatchTriggerstring) + 1 . "}" . MatchHotstring . "{" . ih.EndKey . "}"
 				SendLevel, 0
 			}
-			MatchTriggerstring := ""
-			ih.Start()
-			return
+			; MatchTriggerstring := ""
+			; ih.Start()
+			; return
 		}
 		if (InStr(options, "B0"))
 			SendInput, % MatchHotstring . "{" . ih.EndKey . "}"
@@ -192,7 +193,7 @@ F_InputHookOnEnd(ih, triggerstring, options, hotstring)
 	}
 	else
 	{
-		OutputDebug, % "EndKey:" A_Space . ih.EndKey . "|" . "`n"
+		OutputDebug, % "EndKey:" . ih.EndKey . "|" . "`n"
 		; OutputDebug, % "triggerstring:" . A_Space . triggerstring . A_Space . "hotstring:" . A_Space . hotstring . "`n"
 		ih.Start()
 		OutputDebug, % "Restart" . "`n"
@@ -220,12 +221,18 @@ F_Hon(options, triggerstring, hotstring)
 		options	:= StrReplace(options, "C", "")
 	}
 
-	for index in EndChars	;Temporarily exclude EndChars for time of definition creation.
-		if (InStr(triggerstring, EndChars[index]))
-			ExcludedEndKeys .= EndChars[index]
+	if (InStr(options, "D"))	;case sensitive comparison
+		options .= "D"
+
+	; for index in EndChars	;Temporarily exclude EndChars for time of definition creation.
+	; 	if (InStr(triggerstring, EndChars[index]))
+	; 	{
+	; 		ExcludedEndKeys .= EndChars[index]
+	; 		EndKeys := StrReplace(EndKeys, EndChars[index], "")
+	; 	}
 	
-	ihobject		:= InputHook("V I1" . ihoptions, EndKeys, triggerstring)	;I1 by default; L = 1023 by default
-	EndKeys		.= ExcludedEndKeys
+	ihobject		:= InputHook("V I1" . ihoptions, EndChars, triggerstring)	;I1 by default; L = 1023 by default
+	; EndKeys		.= ExcludedEndKeys
 	; OutputDebug, % "ihobject:" . A_Space . ihobject . "`n"
 	ihobject.OnEnd	:= Func("F_InputHookOnEnd").bind(ihobject, triggerstring, options, hotstring)
 	ihobject.Start()
