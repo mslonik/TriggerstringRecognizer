@@ -32,8 +32,6 @@ endkeys		:= {	1: "-"	;"/" is missing from "standard" set Hotstring function "End
 for index, value in endkeys
 	v_endkeys .= value	;EndKeys are used for InputHook definitions
 
-v_endkeys 		:= "-()[]{}':;""\,.?!`n `t"	;"/" is missing on purpose; this character is applied as trigger for many of my definitions
-
 Hotstring2("cat/", "*", "🐈")
 Hotstring2("dog", "", "🐕")
 ; Hotstring2("Btw", "C", "by The way")
